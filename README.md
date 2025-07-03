@@ -11,6 +11,10 @@ A dynamic code explorer for Laravel applications that visualizes your project's 
 
 ## Installation
 
+Clone options:
+- inside your laravel repo
+- outside your laravel repo
+
 ```bash
 bun install
 # or
@@ -26,6 +30,8 @@ The configuration file supports two main sections:
 - `singles`: Individual files to display in the sidebar
 
 Example configuration:
+- if inside a laravel repo, `app_path` should be set to `..`
+- otherwise, set it to the relative path
 ```json
 {
   "app_path": "example-app",
