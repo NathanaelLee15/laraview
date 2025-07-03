@@ -1,0 +1,19 @@
+{
+    "app_path": "example-app",
+    "targets": {
+        "models": "app/Models/*.php",
+        "views": "resources/views/*.blade.php",
+        "components": "resources/views/components/*.blade.php",
+        "controllers": "app/Http/Controllers/**/*.php",
+        "providers": "app/Providers/*.php",
+        "view": "app/View/**/*.php",
+        "routes": "routes/*.php",
+        "models.subsetA": "app/Models/Example/*.php",
+        "example-files": "example-files/**/*",
+        "test-files": "test-symlinks/**/*"
+    },
+    "singles": {
+        "configs": "*.config.js",
+        "json": "*.json"
+    }
+}

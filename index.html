@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaraView</title>
+    <script src="go.js"></script>
+</head>
+
+<body style="background-color:rgb(57, 70, 90);">
+    <script>
+        go.GraphObject.defineBuilder("HyperlinkText", function (args) {
+            var urlBindingProp = args[2] || "key"; // default to 'key' if no prop given
+            var tb = go.GraphObject.make(go.TextBlock, {
+                stroke: "white",
+                margin: 3,
+                font: "bold 13px Helvetica, bold Arial, sans-serif",
+                cursor: "pointer",
+                isUnderline: true,
+            });
+
+            tb.bind(new go.Binding("text", urlBindingProp));
+
+            tb.click = function (e, obj) {
+                var data = obj.part.data;
+                var url = data.link;
+                // window.open(url, "_blank");
+                window.location.href = url;
+            };
+
+            return tb;
+        });
+    </script>
+    <script>
+        async function init() {
+            var diagram = new go.Diagram('myDiagramDiv', {
+                // Automatically lay out the diagram as a tree;
+                // separate trees are arranged vertically above each other.
+                layout: new go.TreeLayout({ nodeSpacing: 8 })
+            });
+
+            // Define a node template showing class names.
+            // Clicking on the node opens up the documentation for that class.
+            diagram.nodeTemplate = new go.Node("Auto")
+                .add(
+                    new go.Shape({ fill: '#1F4963', stroke: null }),
+                    go.GraphObject.build('HyperlinkText', {
+                        font: ' 16px Helvetica, bold Arial, sans-serif',
+                        stroke: 'rgb(210, 210, 210)',
+                        margin: 6,
+                    },
+                        (node) => node.data.link,
+                    )
+                );
+
+            // Define a trivial link template with no arrowhead
+            diagram.linkTemplate = new go.Link(
+                {
+                    curve: go.Curve.Bezier,
+                    toEndSegmentLength: 30,
+                    fromEndSegmentLength: 30
+                })
+                .add(new go.Shape({ strokeWidth: 1.5 })); // the link shape, with the default black stroke
+
+            // Collect all of the data for the model of the class hierarchy
+            var nodeDataArray = [];
+
+            // Iterate over all of the project
+            const jsonData = await fetch('api/get-project-data');
+            const data = await jsonData.json();
+
+            console.log(data);
+
+            let added_nodes = [];
+
+            function addNode(pair, value, parent = '') {
+                let key = pair.key;
+                let new_parent = pair.key.split('.')[0];
+                if (parent === '' && added_nodes.includes(new_parent)) {
+                    if (pair.key.includes('.')) {
+                        parent = new_parent;
+                        key = pair.key.split('.')[1];
+                    }
+                }
+                else {
+                    added_nodes.push(new_parent);
+                }
+                nodeDataArray.push({
+                    key: key,
+                    parent: parent,
+                    link: ((typeof pair.link === 'string' &&
+                        !Array.isArray(pair.link))
+                        ? 'explore/' + pair.link.replaceAll('/', '__') : '#')
+                });
+                if (typeof value === 'object' && value !== null) {
+                    for (const childKey in value) {
+                        addNode({ key: childKey, link: value[childKey] }, value[childKey], key);
+                    }
+                }
+            }
+
+            for (const k in data) {
+                if (k !== 'singles') {
+                    let parent = k;
+                    let key = k;
+                    if (k.includes('.')) {
+                        parent = k.split('.')[0];
+                        key = k.split('.')[1];
+                    }
+                    addNode({ key: key, link: data[k] }, data[k], parent);
+                }
+            }
+            for (const k in data.singles) {
+                addNode({ key: k, link: data.singles[k] }, data.singles[k]);
+            }
+
+            // Create the model for the hierarchy diagram
+            diagram.model = new go.TreeModel(nodeDataArray);
+
+            // Now collect all node data that are singletons
+            var singlesArray = []; // for classes that don't inherit from another class
+            diagram.nodes.each((node) => {
+                if (node.linksConnected.count === 0) {
+                    singlesArray.push(node.data);
+                }
+            });
+
+            // Remove the unconnected class nodes from the main Diagram
+            diagram.model.removeNodeDataCollection(singlesArray);
+
+            // Display the unconnected classes in a separate Diagram
+            var singletons = new go.Diagram('mySingletons', {
+                nodeTemplate: diagram.nodeTemplate, // share the node template with the main Diagram
+                layout: new go.GridLayout({
+                    wrappingColumn: 1, // put the unconnected nodes in a column
+                    spacing: new go.Size(4, 4)
+                }),
+                model: new go.Model(singlesArray) // use a separate model
+            });
+        }
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+
+
+    <div id="sample">
+        <div style="width: 100%; display: flex; justify-content: space-between">
+            <div id="myDiagramDiv" style="flex-grow: 1; height: 725px; margin-right: 4px; border: solid 1px black">
+            </div>
+            <div id="mySingletons" style="width: 160px; background-color: rgb(56, 74, 100); border: solid 1px black"></div>
+        </div>
+    </div>
+</body>
+</html>
