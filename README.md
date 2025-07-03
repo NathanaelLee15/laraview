@@ -97,6 +97,12 @@ The component wrapper provides:
 
 ## Laravel Integration
 
+Setup your laraview `.env` using the `.env.example`:
+```env
+LARAVEL_AUTH_EMAIL=test@example.com
+LARAVEL_AUTH_PASSWORD=password
+```
+
 ### API Routes (routes/api.php)
 
 Add these routes to enable view/component rendering:
